@@ -13,15 +13,15 @@ function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Immediate hydration from localStorage for Zero and One persistence model
-    const savedSession = localStorage.getItem('zeroandone_auth_session');
+    // Immediate hydration from localStorage for Netcom persistence model
+    const savedSession = localStorage.getItem('netcom_auth_session');
     if (savedSession) {
       try {
         const parsed = JSON.parse(savedSession);
         setUser(parsed);
       } catch (e) {
         console.error("Session corruption detected, clearing...");
-        localStorage.removeItem('zeroandone_auth_session');
+        localStorage.removeItem('netcom_auth_session');
       }
     }
     setLoading(false);
@@ -29,11 +29,9 @@ function App() {
     // Optional: Keep listening for Supabase Auth changes if they integrate it later
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!session) {
-        // If supabase thinks we are logged out, but we have a local session, it might be fine,
-        // but for security we can clear on sign out event
         if (_event === 'SIGNED_OUT') {
           setUser(null);
-          localStorage.removeItem('zeroandone_auth_session');
+          localStorage.removeItem('netcom_auth_session');
         }
       }
     });

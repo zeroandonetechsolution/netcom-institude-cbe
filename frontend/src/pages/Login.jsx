@@ -1,154 +1,116 @@
-import React, { useState, useContext, useEffect } from 'react';
+import React, { useState, useContext } from 'react';
 import { AuthContext } from '../App';
-import { Building2, Shield, UserCheck, ArrowRight, Sparkles } from 'lucide-react';
-import './Login.css';
+import { Shield, Lock, User, LogIn, Building2, AlertTriangle, ShieldCheck } from 'lucide-react';
 import { supabase } from '../supabase';
+import './Login.css';
+import netcomLogo from '../assets/netcom logo.jpg';
 
 export default function Login() {
-  const { setUser } = useContext(AuthContext);
   const [role, setRole] = useState('admin');
   const [userId, setUserId] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [isChanging, setIsChanging] = useState(false);
-
-  // Trigger changing animation
-  const handleRoleChange = (newRole) => {
-    if (role === newRole) return;
-    setIsChanging(true);
-    setTimeout(() => {
-      setRole(newRole);
-      setUserId('');
-      setPassword('');
-      setError('');
-      setIsChanging(false);
-    }, 200);
-  };
+  const [isLoading, setIsLoading] = useState(false);
+  const { setUser } = useContext(AuthContext);
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    if (!userId || !password) {
-      setError("Identification required.");
-      return;
-    }
-    
-    setLoading(true);
+    setIsLoading(true);
     setError('');
 
     try {
-      // Direct Database Query for simpler Role-Based Access without complex Supabase Auth setup
-      // Matches the "Zero and One" pragmatic premium structure
       const { data, error: dbError } = await supabase
         .from('users')
         .select('*')
         .eq('id', userId)
         .eq('role', role)
         .single();
-        
-      if (dbError || !data || data.password !== password) {
-        throw new Error('Authentication failed. Invalid credentials.');
+
+      if (dbError || !data) {
+        throw new Error("Invalid terminal credentials.");
       }
-      
+
+      if (data.password !== password) {
+        throw new Error("Secure keyphrase mismatch.");
+      }
+
       const sessionUser = { id: data.id, name: data.name, role: data.role };
-      
-      // Save to localStorage for simple persistence across reloads (Zero-config migration)
-      localStorage.setItem('zeroandone_auth_session', JSON.stringify(sessionUser));
       setUser(sessionUser);
+      localStorage.setItem('netcom_auth_session', JSON.stringify(sessionUser));
+
     } catch (err) {
       setError(err.message);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
   return (
     <div className="login-container">
-      {/* Dynamic Background */}
       <div className="ambient-background">
         <div className="vibrant-blob purple"></div>
         <div className="vibrant-blob cyan"></div>
         <div className="vibrant-blob blue"></div>
       </div>
-      
-      <div className="login-card glass-panel">
-        <div className="login-header">
-          <div className="logo-section">
-            <div className="icon-badge">
-              <Building2 size={32} />
-            </div>
-            <div className="brand-copy">
-              <span className="platform-tag">Netcom Powered by</span>
-              <h2>Zero<span>&</span>One</h2>
-            </div>
+
+      <div className="glass-panel login-card">
+        <div className="logo-section">
+          <img src={netcomLogo} alt="Netcom" style={{ width: 80, height: 60, borderRadius: 10, objectFit: 'cover' }} />
+          <div className="brand-copy">
+            <span className="platform-tag">CENTRAL ACCESS GATEWAY</span>
+            <h2 style={{ color: 'white', margin: 0 }}>NETCOM <span style={{ color: '#7c3aed' }}>TECHNOLOGIES</span></h2>
           </div>
-          <p className="portal-title">Institutional Resource Management</p>
         </div>
+
+        <p className="portal-title">Institutional Resource Management</p>
 
         <div className="role-toggle-container">
-          <button 
-            className={`toggle-tab ${role === 'admin' ? 'active' : ''}`}
-            onClick={() => handleRoleChange('admin')}
-          >
-            <Shield size={16} /> Admin
+          <button className={`toggle-tab ${role === 'admin' ? 'active' : ''}`} onClick={() => setRole('admin')}>
+            <Shield size={18} /> Admin
           </button>
-          <button 
-            className={`toggle-tab ${role === 'faculty' ? 'active' : ''}`}
-            onClick={() => handleRoleChange('faculty')}
-          >
-            <UserCheck size={16} /> Faculty
+          <button className={`toggle-tab ${role === 'faculty' ? 'active' : ''}`} onClick={() => setRole('faculty')}>
+            <User size={18} /> Faculty
           </button>
-          <div className={`tab-indicator ${role}`} />
+          <div className={`tab-indicator ${role === 'faculty' ? 'faculty' : ''}`}></div>
         </div>
 
-        <form onSubmit={handleLogin} className={`login-form ${isChanging ? 'shifting' : ''}`}>
+        <form onSubmit={handleLogin} className={`login-form ${isLoading ? 'shifting' : ''}`}>
           <div className="input-row">
-            <label>{role === 'admin' ? 'Administrative Access ID' : 'Faculty Personnel ID'}</label>
+            <label>{role === 'admin' ? 'Administrative Access ID' : 'Faculty Terminal ID'}</label>
             <div className="field-group">
-              <input 
-                type="text" 
-                placeholder={role === 'admin' ? 'admin' : 'faculty_id'}
-                value={userId}
-                onChange={(e) => setUserId(e.target.value)}
-                autoComplete="off"
-              />
+              <input type="text" placeholder={role === 'admin' ? "admin" : "F-10X"} value={userId} onChange={(e) => setUserId(e.target.value)} required />
             </div>
           </div>
-          
+
           <div className="input-row">
             <label>Secure Keyphrase</label>
             <div className="field-group">
-              <input 
-                type="password" 
-                placeholder="********" 
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
+              <input type="password" placeholder="********" value={password} onChange={(e) => setPassword(e.target.value)} required />
             </div>
           </div>
-          
+
           {error && (
             <div className="auth-error animate-shake">
-              <ShieldAlert size={14} /> {error}
+              <AlertTriangle size={16} />
+              {error}
             </div>
           )}
 
-          <button type="submit" className="login-action-btn" disabled={loading}>
-            {loading ? (
-              <span className="loader">Authenticating...</span>
-            ) : (
+          <button type="submit" className="login-action-btn" disabled={isLoading}>
+            {isLoading ? <span className="loader">Syncing...</span> : (
               <>
-                <span>Enter Terminal</span>
-                <ArrowRight size={18} />
+                <LogIn size={20} />
+                Enter Terminal
               </>
             )}
           </button>
         </form>
 
         <div className="login-footer">
-          <span className="encryption-notice">
-            <Sparkles size={12} /> Military-grade end-to-end encryption active
-          </span>
+          <div className="encryption-notice">
+             <ShieldCheck size={14} color="#10b981" />
+             Military-grade end-to-end encryption active
+          </div>
         </div>
       </div>
     </div>
