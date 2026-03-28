@@ -1,5 +1,5 @@
 node_modules/
-.env
+**/.env
 *.db
 backend/netcom.db
 frontend/dist/
