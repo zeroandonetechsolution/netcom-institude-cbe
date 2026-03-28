@@ -1,0 +1,8 @@
+# ---------------------------------------------------------
+# Netcom Faculty Portal - Automated Installation
+# ---------------------------------------------------------
+# The package.json files already know everything they need.
+# Just paste this exact line into your main folder's terminal 
+# to automate the entire installation across both environments:
+
+npm install --prefix backend && npm install --prefix frontend
