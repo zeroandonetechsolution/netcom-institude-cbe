@@ -17,6 +17,9 @@ CREATE TABLE IF NOT EXISTS reports (
   activities TEXT,
   in_time TEXT,
   out_time TEXT,
+  image_url TEXT, -- Verification photo
+  latitude DOUBLE PRECISION,
+  longitude DOUBLE PRECISION,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 

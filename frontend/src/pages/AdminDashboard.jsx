@@ -279,11 +279,33 @@ export default function AdminDashboard() {
                             <Clock size={14} /> {r.in_time} — {r.out_time || 'ACTIVE'}
                           </div>
                         )}
+                        {r.latitude && r.longitude && (
+                          <a 
+                            href={`https://www.google.com/maps?q=${r.latitude},${r.longitude}`}
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            style={{ 
+                              display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', 
+                              color: 'var(--accent-color)', fontWeight: 700, textDecoration: 'none',
+                              background: 'rgba(6,182,212,0.1)', padding: '4px 8px', borderRadius: '4px'
+                            }}
+                          >
+                            <MapPin size={12} /> Live Location Sync
+                          </a>
+                        )}
                       </div>
                       
-                      <p style={{ margin: 0, fontSize: '0.95rem', color: 'var(--text-primary)', opacity: 0.9, lineHeight: 1.6 }}>
-                        {r.attendance_status === 'leave' ? `Reason: ${r.leave_reason}` : r.activities}
-                      </p>
+                      <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-start' }}>
+                        {r.image_url && (
+                          <div style={{ width: '150px', minWidth: '150px' }}>
+                            <img src={r.image_url} alt="verification" style={{ width: '100%', borderRadius: '10px', height: '100px', objectFit: 'cover', border: '1px solid var(--border-color)' }} />
+                            <p style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textAlign: 'center', marginTop: '5px' }}>Geotagged Proof</p>
+                          </div>
+                        )}
+                        <p style={{ margin: 0, fontSize: '0.95rem', color: 'var(--text-primary)', opacity: 0.9, lineHeight: 1.6 }}>
+                          {r.attendance_status === 'leave' ? `Reason: ${r.leave_reason}` : r.activities}
+                        </p>
+                      </div>
                     </div>
                   ))
                 )}
