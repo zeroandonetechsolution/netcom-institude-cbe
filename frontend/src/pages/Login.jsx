@@ -1,12 +1,12 @@
 import React, { useState, useContext } from 'react';
 import { AuthContext } from '../App';
-import { Shield, Lock, User, LogIn, Building2, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { Shield, Lock, User, LogIn, AlertTriangle, ShieldCheck } from 'lucide-react';
 import { supabase } from '../supabase';
 import './Login.css';
 import netcomLogo from '../assets/netcom logo.jpg';
 
 export default function Login() {
-  const [role, setRole] = useState('admin');
+  const [activeTab, setActiveTab] = useState('admin'); // 'admin' or 'employee'
   const [userId, setUserId] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -19,19 +19,27 @@ export default function Login() {
     setError('');
 
     try {
+      // Fetch user data across all roles to determine access
       const { data, error: dbError } = await supabase
         .from('users')
         .select('*')
         .eq('id', userId)
-        .eq('role', role)
         .single();
 
       if (dbError || !data) {
-        throw new Error("Invalid terminal credentials.");
+        throw new Error("Terminal ID not found in Netcom database.");
       }
 
       if (data.password !== password) {
-        throw new Error("Secure keyphrase mismatch.");
+        throw new Error("Secure keyphrase mismatch. Verification failed.");
+      }
+
+      // Logic check: Ensure admins use the Admin tab, and employees use the Employee tab
+      if (activeTab === 'admin' && data.role !== 'admin') {
+        throw new Error("Administrative override required. Use Employee terminal.");
+      }
+      if (activeTab === 'employee' && data.role === 'admin') {
+        throw new Error("Administrator detected. Please use Admin Portal access.");
       }
 
       const sessionUser = { id: data.id, name: data.name, role: data.role };
@@ -39,7 +47,7 @@ export default function Login() {
       localStorage.setItem('netcom_auth_session', JSON.stringify(sessionUser));
 
     } catch (err) {
-      setError(err.message);
+      setError(err.errorMessage || err.message);
     } finally {
       setIsLoading(false);
     }
@@ -65,25 +73,25 @@ export default function Login() {
         <p className="portal-title">Institutional Resource Management</p>
 
         <div className="role-toggle-container">
-          <button className={`toggle-tab ${role === 'admin' ? 'active' : ''}`} onClick={() => setRole('admin')}>
+          <button className={`toggle-tab ${activeTab === 'admin' ? 'active' : ''}`} onClick={() => setActiveTab('admin')}>
             <Shield size={18} /> Admin
           </button>
-          <button className={`toggle-tab ${role === 'faculty' ? 'active' : ''}`} onClick={() => setRole('faculty')}>
-            <User size={18} /> Faculty
+          <button className={`toggle-tab ${activeTab === 'employee' ? 'active' : ''}`} onClick={() => setActiveTab('employee')}>
+            <User size={18} /> Employee
           </button>
-          <div className={`tab-indicator ${role === 'faculty' ? 'faculty' : ''}`}></div>
+          <div className={`tab-indicator ${activeTab === 'employee' ? 'faculty' : ''}`}></div>
         </div>
 
         <form onSubmit={handleLogin} className={`login-form ${isLoading ? 'shifting' : ''}`}>
           <div className="input-row">
-            <label>{role === 'admin' ? 'Administrative Access ID' : 'Faculty Terminal ID'}</label>
+            <label>{activeTab === 'admin' ? 'Administrative Access ID' : 'Employee Terminal ID'}</label>
             <div className="field-group">
-              <input type="text" placeholder={role === 'admin' ? "admin" : "F-10X"} value={userId} onChange={(e) => setUserId(e.target.value)} required />
+              <input type="text" placeholder={activeTab === 'admin' ? "Admin ID" : "F-10X / H-10X"} value={userId} onChange={(e) => setUserId(e.target.value)} required />
             </div>
           </div>
 
           <div className="input-row">
-            <label>Secure Keyphrase</label>
+            <label>Master Security Key</label>
             <div className="field-group">
               <input type="password" placeholder="********" value={password} onChange={(e) => setPassword(e.target.value)} required />
             </div>
@@ -100,7 +108,7 @@ export default function Login() {
             {isLoading ? <span className="loader">Syncing...</span> : (
               <>
                 <LogIn size={20} />
-                Enter Terminal
+                Access Terminal
               </>
             )}
           </button>
@@ -109,7 +117,7 @@ export default function Login() {
         <div className="login-footer">
           <div className="encryption-notice">
              <ShieldCheck size={14} color="#10b981" />
-             Military-grade end-to-end encryption active
+             Secured by Netcom Institutional Protocols
           </div>
         </div>
       </div>
