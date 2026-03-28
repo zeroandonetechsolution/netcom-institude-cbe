@@ -1,0 +1,12 @@
+{
+  "name": "netcom-auth-app",
+  "version": "1.0.0",
+  "description": "Root package.json for Render Monorepo deployment",
+  "scripts": {
+    "build": "npm install --prefix backend && npm install --prefix frontend && npm run build --prefix frontend",
+    "start": "npm start --prefix backend"
+  },
+  "engines": {
+    "node": "22.x"
+  }
+}
