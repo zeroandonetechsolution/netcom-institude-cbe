@@ -1,6 +1,7 @@
 import React, { useContext, useState, useEffect } from 'react';
 import { AuthContext } from '../App';
 import { LogOut, Users, FileText, Activity, ShieldAlert, Building2, UserPlus, Trash2, Clock } from 'lucide-react';
+import { supabase } from '../supabase';
 
 export default function AdminDashboard() {
   const { user, setUser } = useContext(AuthContext);
@@ -19,9 +20,17 @@ export default function AdminDashboard() {
 
   const fetchReports = async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/reports');
-      const data = await res.json();
-      setReports(data);
+      const { data, error } = await supabase
+        .from('reports')
+        .select(`*, users(name)`)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      
+      const formattedData = data.map(r => ({
+        ...r,
+        name: r.users?.name || 'Unknown'
+      }));
+      setReports(formattedData);
     } catch (err) {
       console.error(err);
     }
@@ -29,8 +38,11 @@ export default function AdminDashboard() {
 
   const fetchUsers = async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/users');
-      const data = await res.json();
+      const { data, error } = await supabase
+        .from('users')
+        .select('id, name, role')
+        .eq('role', 'faculty');
+      if (error) throw error;
       setFaculties(data);
     } catch (err) {
       console.error(err);
@@ -49,7 +61,8 @@ export default function AdminDashboard() {
   const handleDeleteUser = async (id) => {
     if (!window.confirm(`Are you sure you want to completely delete exactly this faculty member (${id}) and all their reports?`)) return;
     try {
-      await fetch(`http://localhost:5000/api/users/${id}`, { method: 'DELETE' });
+      const { error } = await supabase.from('users').delete().eq('id', id).eq('role', 'faculty');
+      if (error) throw error;
       fetchUsers();
       fetchReports();
     } catch (e) {
@@ -61,13 +74,13 @@ export default function AdminDashboard() {
     e.preventDefault();
     if (!newFacId || !newFacName || !newFacPass) return alert("All fields are required");
     try {
-      const res = await fetch('http://localhost:5000/api/users', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: newFacId, name: newFacName, password: newFacPass })
+      const { error } = await supabase.from('users').insert({
+        id: newFacId,
+        name: newFacName,
+        password: newFacPass,
+        role: 'faculty'
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      if (error) throw error;
       
       // Reset form on success
       setNewFacId('');
@@ -84,8 +97,8 @@ export default function AdminDashboard() {
     setAiGenerating(true);
     setAiMessage('Synthesizing data... This may take a moment.');
     try {
-      const res = await fetch('http://localhost:5000/api/generate-ai-report', { method: 'POST' });
-      const data = await res.json();
+      const { data, error } = await supabase.functions.invoke('generate-ai-report');
+      if (error || !data?.success) throw new Error(data?.error || error?.message || 'Failed');
       if (data.previewUrl) {
         setAiMessage(`Success! Test Draft URL: ${data.previewUrl}`);
       } else {

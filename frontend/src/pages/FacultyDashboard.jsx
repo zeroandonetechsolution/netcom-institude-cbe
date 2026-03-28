@@ -1,6 +1,7 @@
 import React, { useContext, useState, useEffect } from 'react';
 import { AuthContext } from '../App';
 import { LogOut, CheckCircle, Send, Building2, Clock, CalendarX2, Mail } from 'lucide-react';
+import { supabase } from '../supabase';
 
 export default function FacultyDashboard() {
   const { user, setUser } = useContext(AuthContext);
@@ -26,23 +27,31 @@ export default function FacultyDashboard() {
 
   const checkTodayStatus = async () => {
     try {
-      const res = await fetch(`http://localhost:5000/api/reports/today/${user.id}`);
-      const data = await res.json();
-      if (data.report) {
-        if (data.report.attendance_status === 'leave') {
+      const today = new Date().toISOString().split('T')[0];
+      const { data, error } = await supabase
+        .from('reports')
+        .select('*')
+        .eq('faculty_id', user.id)
+        .eq('date', today)
+        .order('id', { ascending: false })
+        .limit(1)
+        .single();
+        
+      if (data) {
+        if (data.attendance_status === 'leave') {
           setAttendance('leave');
-          setLeaveReason(data.report.leave_reason);
+          setLeaveReason(data.leave_reason);
           setPunchedOut(true); // Treat leave as completely done for the day
         } else {
           setAttendance('present');
-          if (data.report.in_time) {
+          if (data.in_time) {
             setPunchedIn(true);
-            setInTime(data.report.in_time);
+            setInTime(data.in_time);
           }
-          if (data.report.out_time) {
+          if (data.out_time) {
             setPunchedOut(true);
-            setOutTime(data.report.out_time);
-            setReport(data.report.activities);
+            setOutTime(data.out_time);
+            setReport(data.activities);
           }
         }
       }
@@ -68,17 +77,13 @@ export default function FacultyDashboard() {
     
     try {
       const today = new Date().toISOString().split('T')[0];
-      const res = await fetch('http://localhost:5000/api/reports', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      const { error } = await supabase.from('reports').insert({
           faculty_id: user.id,
           date: today,
           attendance_status: 'present',
           in_time: time
-        })
       });
-      if (!res.ok) throw new Error('Failed to punch in');
+      if (error) throw new Error('Failed to punch in');
       
       setPunchedIn(true);
       setInTime(time);
@@ -95,17 +100,13 @@ export default function FacultyDashboard() {
     setErrorMsg('');
     try {
       const today = new Date().toISOString().split('T')[0];
-      const res = await fetch('http://localhost:5000/api/reports', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      const { error } = await supabase.from('reports').insert({
           faculty_id: user.id,
           date: today,
           attendance_status: 'leave',
           leave_reason: leaveReason
-        })
       });
-      if (!res.ok) throw new Error('Failed to submit leave');
+      if (error) throw new Error('Failed to submit leave');
       setPunchedOut(true);
     } catch (err) {
       setErrorMsg(err.message);
@@ -122,18 +123,13 @@ export default function FacultyDashboard() {
     
     try {
       const today = new Date().toISOString().split('T')[0];
-      const res = await fetch('http://localhost:5000/api/reports', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          faculty_id: user.id,
-          date: today,
+      const { error } = await supabase.from('reports').update({
           attendance_status: 'present',
           activities: report,
           out_time: time
-        })
-      });
-      if (!res.ok) throw new Error('Failed to punch out');
+      }).eq('faculty_id', user.id).eq('date', today);
+      
+      if (error) throw new Error('Failed to punch out');
       
       setPunchedOut(true);
       setOutTime(time);
@@ -154,13 +150,10 @@ export default function FacultyDashboard() {
   const handleGenerateWeeklyReport = async () => {
     setAiGenerating(true);
     try {
-      const res = await fetch('http://localhost:5000/api/generate-ai-report', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ faculty_id: user.id })
+      const { data, error } = await supabase.functions.invoke('generate-ai-report', {
+        body: { faculty_id: user.id }
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      if (error || !data?.success) throw new Error(data?.error || error?.message || 'AI generation failed');
       alert("Success! Your weekly summary report has been synthesized by AI and mailed to the Admin securely.");
     } catch (err) {
       alert("Error: " + err.message);

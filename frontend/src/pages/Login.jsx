@@ -2,7 +2,7 @@ import React, { useState, useContext, useEffect } from 'react';
 import { AuthContext } from '../App';
 import { Building2, Shield, UserCheck, ArrowRight } from 'lucide-react';
 import './Login.css';
-import { API_BASE_URL } from '../config';
+import { supabase } from '../supabase';
 
 export default function Login() {
   const { setUser } = useContext(AuthContext);
@@ -31,16 +31,17 @@ export default function Login() {
     setError('');
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: userId, password, role })
-      });
+      const { data, error: dbError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', userId)
+        .eq('role', role)
+        .single();
+        
+      if (dbError) throw new Error('Invalid credentials');
+      if (!data || data.password !== password) throw new Error('Invalid credentials');
       
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Login failed');
-      
-      setUser(data);
+      setUser({ id: data.id, name: data.name, role: data.role });
     } catch (err) {
       setError(err.message);
     } finally {
