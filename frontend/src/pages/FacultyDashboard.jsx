@@ -62,7 +62,10 @@ export default function FacultyDashboard() {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    localStorage.setItem('zeroandone_auth_session', null); // Invalidate session
+    localStorage.removeItem('zeroandone_auth_session');
     setUser(null);
   };
 

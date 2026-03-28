@@ -54,7 +54,9 @@ export default function AdminDashboard() {
     fetchReports();
   }, [activeTab]);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    localStorage.removeItem('zeroandone_auth_session');
     setUser(null);
   };
 

@@ -1,9 +1,10 @@
 -- Table for Users/Faculty
 CREATE TABLE IF NOT EXISTS users (
   id TEXT PRIMARY KEY,
+  auth_id UUID UNIQUE, -- Linked to Supabase Auth.users
   name TEXT NOT NULL,
   role TEXT NOT NULL,
-  password TEXT NOT NULL
+  password TEXT -- Keeping for legacy sync ONLY
 );
 
 -- Table for Daily Reports
